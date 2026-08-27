@@ -19,7 +19,7 @@ io.on("connection", (socket) => {
     console.log(users.length);
 
     socket.on("username", (msg) => {
-        io.emit("welcome", `${msg.name} está logado!`);
+        io.emit("chat-message", `${msg.name} está logado!`);
     })
 
     socket.on("textSend", (msg) => {
