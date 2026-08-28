@@ -12,27 +12,87 @@ app.get("/", (req, res) => {
     res.json({ message: "funcionou" });
 });
 
-let users: string[] = [];
+
+const users = new Map<string, string>();
+
 
 io.on("connection", (socket) => {
-    users.push(socket.id);
-    console.log(users.length);
 
+    console.log("Usuário conectado:", socket.id);
+
+
+    // LOGIN
     socket.on("username", (msg) => {
-        io.emit("chat-message", `${msg.name} está logado!`);
-    })
 
-    socket.on("textSend", (msg) => {
-        console.log(msg)
-        io.emit("chat-message", msg)
-    })
+        const username = msg.name?.trim();
 
-    socket.on("disconnect", (msg) => {
-        users = users.filter(userId => userId !== socket.id)
-        console.log("Usuário desconectado, numero de ativos: ", users.length);
+        if (!username) {
+            return;
+        }
+
+        users.set(socket.id, username);
+
+        io.emit("welcome", `${username} está logado!`);
     });
+
+
+    // MENSAGEM
+    socket.on("textSend", (msg) => {
+
+        const username = users.get(socket.id);
+
+        if (!username) {
+            return;
+        }
+
+        console.log(msg);
+
+        io.emit("chat-message", `${username}: ${msg}`);
+
+    });
+
+
+    // LOGOUT
+    socket.on("logout", () => {
+
+        const username = users.get(socket.id);
+
+        if (username) {
+            io.emit(
+                "user-logout",
+                `${username} saiu do chat!`
+            );
+        }
+
+        users.delete(socket.id);
+
+    });
+
+
+    // DESCONECTOU
+    socket.on("disconnect", () => {
+
+        const username = users.get(socket.id);
+
+        if (username) {
+            io.emit(
+                "user-logout",
+                `${username} saiu do chat!`
+            );
+        }
+
+        users.delete(socket.id);
+
+        console.log(
+            "Usuário desconectado, número de ativos:",
+            users.size
+        );
+
+    });
+
 });
 
+
 server.listen(3000, () => {
-    console.log('http://localhost:3000');
+    console.log("http://localhost:3000");
 });
